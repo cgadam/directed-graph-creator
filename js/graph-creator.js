@@ -3,7 +3,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
 
   // TODO add user settings
   var consts = {
-    defaultTitle: "random variable"
+    defaultTitle: "Node"
   };
   var settings = {
     appendElSpec: "#graph"
@@ -306,8 +306,8 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         state = thisGraph.state;
     d3.event.stopPropagation();
     state.mouseDownNode = d;
-    if (d3.event.shiftKey){
-      state.shiftNodeDrag = d3.event.shiftKey;
+    if (d3.event.ctrlKey){
+      state.shiftNodeDrag = d3.event.ctrlKey;
       // reposition dragged directed edge
       thisGraph.dragLine.classed('hidden', false)
         .attr('d', 'M' + d.x + ',' + d.y + 'L' + d.x + ',' + d.y);
@@ -343,7 +343,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
           })
           .on("keydown", function(d){
             d3.event.stopPropagation();
-            if (d3.event.keyCode == consts.ENTER_KEY && !d3.event.shiftKey){
+            if (d3.event.keyCode == consts.ENTER_KEY && !d3.event.ctrlKey){
               this.blur();
             }
           })
@@ -390,7 +390,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         state.justDragged = false;
       } else{
         // clicked, not dragged
-        if (d3.event.shiftKey){
+        if (d3.event.ctrlKey){
           // shift-clicked node: edit text content
           var d3txt = thisGraph.changeTextOfNode(d3node, d);
           var txtNode = d3txt.node();
@@ -427,7 +427,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     if (state.justScaleTransGraph) {
       // dragged not clicked
       state.justScaleTransGraph = false;
-    } else if (state.graphMouseDown && d3.event.shiftKey){
+    } else if (state.graphMouseDown){
       // clicked not dragged from svg
       var xycoords = d3.mouse(thisGraph.svgG.node()),
           d = {id: thisGraph.idct++, title: consts.defaultTitle, x: xycoords[0], y: xycoords[1]};
@@ -544,6 +544,10 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       })
       .on("mouseup", function(d){
         thisGraph.circleMouseUp.call(thisGraph, d3.select(this), d);
+      })
+      .on("contextmenu", function(d){
+        d3.event.preventDefault();
+        return false;
       })
       .call(thisGraph.drag);
 
