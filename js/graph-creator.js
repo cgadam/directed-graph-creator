@@ -100,21 +100,7 @@ document.onload = (function(d3, saveAs, Blob){
     thisGraph.nodes = nodes || [];
     thisGraph.edges = edges || [];
 
-    thisGraph.state = {
-      selectedNode: null,
-      selectedEdge: null,
-      mouseDownNode: null,
-      mouseDownLink: null,
-      justDragged: false,
-      justScaleTransGraph: false,
-      lastKeyDown: -1,
-      shiftNodeDrag: false,
-      selectedText: null,
-      dijkstraEnabled: false,
-      dijkstraFromNode: null,
-      dijkstraToNode: null,
-      dijkstraPath: []
-    };
+    thisGraph.clearState();
 
     // define arrow markers for graph links
     var defs = svg.append('svg:defs');
@@ -227,7 +213,7 @@ document.onload = (function(d3, saveAs, Blob){
       thisGraph.edges.forEach(function(val, i){
         saveEdges.push({source: val.source.id, target: val.target.id});
       });
-      var blob = new Blob([window.JSON.stringify({"nodes": thisGraph.nodes, "edges": saveEdges})], {type: "text/plain;charset=utf-8"});
+      var blob = new Blob([window.JSON.stringify({"nodes": thisGraph.nodes, "edges": saveEdges, "idct": thisGraph.idct })], {type: "text/plain;charset=utf-8"});
       saveAs(blob, "mydag.json");
     });
 
@@ -248,7 +234,7 @@ document.onload = (function(d3, saveAs, Blob){
             var jsonObj = JSON.parse(txtRes);
             thisGraph.deleteGraph(true);
             thisGraph.nodes = jsonObj.nodes;
-            thisGraph.setIdCt(jsonObj.nodes.length + 1);
+            thisGraph.setIdCt(jsonObj.idct);
             var newEdges = jsonObj.edges;
             newEdges.forEach(function(e, i){
               newEdges[i] = {source: thisGraph.nodes.filter(function(n){return n.id == e.source;})[0],
@@ -274,6 +260,24 @@ document.onload = (function(d3, saveAs, Blob){
       thisGraph.deleteGraph(false);
     });
   };
+
+  GraphCreator.prototype.clearState = function(){
+    this.state = {
+      selectedNode: null,
+      selectedEdge: null,
+      mouseDownNode: null,
+      mouseDownLink: null,
+      justDragged: false,
+      justScaleTransGraph: false,
+      lastKeyDown: -1,
+      shiftNodeDrag: false,
+      selectedText: null,
+      dijkstraEnabled: false,
+      dijkstraFromNode: null,
+      dijkstraToNode: null,
+      dijkstraPath: []
+    }
+  }
 
   GraphCreator.prototype.setIdCt = function(idct){
     this.idct = idct;
@@ -313,6 +317,7 @@ document.onload = (function(d3, saveAs, Blob){
     if(doDelete){
       thisGraph.nodes = [];
       thisGraph.edges = [];
+      thisGraph.clearState();
       thisGraph.updateGraph();
     }
   };
@@ -804,6 +809,6 @@ document.onload = (function(d3, saveAs, Blob){
         .attr("width", width)
         .attr("height", height);
   var graph = new GraphCreator(svg, nodes, edges);
-      graph.setIdCt(2);
+      graph.setIdCt(1);
   graph.updateGraph();
 })(window.d3, window.saveAs, window.Blob);
