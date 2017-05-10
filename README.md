@@ -2,12 +2,12 @@ Graph Editor Express
 ====================
 
 Interactive tool for creating directed graphs, created using d3.js.
-It also lets you calculate the shortest path between two nodes when all the nodes
-have an integer label.
+It also lets you calculate the shortest path between two nodes using Dijkstra's algorithm.
+Dijkstra path can be calculated only when all the nodes have a positive integer title.
 
 ![](assets/thumbnail.png)
 
-## Operations:
+## Basic Graph Operations:
 
 * Drag & Scroll to translate / zoom the graph
 * Click on the graph to create a node
@@ -17,13 +17,13 @@ have an integer label.
 
 ## Dijkstra
 
-When all nodes contain an integer value then the Dijkstra-enabled icon will turn on (<img src="assets/nodes.png" width="30">). This means that the graph is elegible for calculating a path using Dijkstra's algorithm.
+When all nodes contain a positive integer title then the "Dijkstra-enabled" icon will turn on (<img src="assets/nodes.png" width="30">). This means that the graph is elegible for calculating a path using Dijkstra's algorithm.
 
 In order to calculate such path you need to:
 
-1. Select a node. (Node will turn light pink)
+1. Click a node. (Node will turn light pink)
 2. Right-click on it and select "From Node". (The node itself turns to red)
-3. Select another node. (Node will turn light pink)
+3. Click another node. (Node will turn light pink)
 4. Right-click on it and select "To Node". (The node itself turns to red)
 
 The shortest path will automatically be calculated using Dijkstra's algorithm. All nodes belonging to the shortest path will
