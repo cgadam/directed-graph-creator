@@ -490,7 +490,7 @@ document.onload = (function(d3, saveAs, Blob){
       isDijstraEnabled = false;
     }else{
       for(var i=0; i < this.nodes.length; i++){
-        if(isNaN(parseInt(this.nodes[i].title))){
+        if(isNaN(parseInt(this.nodes[i].title)) || parseInt(this.nodes[i].title) < 0 ){
           isDijstraEnabled = false;
           break;
         }
@@ -500,7 +500,7 @@ document.onload = (function(d3, saveAs, Blob){
     d3.select('#dijkstra').classed('disabled', !this.state.dijkstraEnabled);
     var tooltip = isDijstraEnabled ?
       'Click to clear the Dijkstra path. Select a node and right click on it to mark it as a "from"/"to" node' :
-      'Dijkstra mode is disabled. All nodes must contain numbers as labels to enable this mode.';
+      'Dijkstra mode is disabled. All nodes must contain positive integers as title to enable this mode.';
     d3.select(".tooltiptext").text(tooltip);
   };
 
