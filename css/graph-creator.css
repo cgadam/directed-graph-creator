@@ -32,12 +32,83 @@ body{
     z-index: 5;
 }
 
-#toolbox input{
+#toolbox input,
+#toolbox .dijkstra{
     width: 30px;
+}
+
+#toolbox input{
     opacity: 0.4;
 }
+
+#toolbox .dijkstra.disabled{
+    filter: grayscale(100%);
+    cursor: inherit;
+}
+
 #toolbox input:hover{
     opacity: 1;
+    cursor: pointer;
+}
+
+div .dijkstra{
+    height: 30px;
+    background-image: url("../assets/nodes.png");
+    background-size: contain;
+    cursor: pointer;
+}
+
+.tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip .tooltiptext {
+    visibility: hidden;
+    width: 300px;
+    height: 150px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+
+    /* Position the tooltip */
+    position: absolute;
+    z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+    visibility: visible;
+}
+
+.hide {
+  display: none;
+}
+
+#rmenu {
+  border: 1px solid black;
+  background-color: white;
+}
+
+#rmenu ul {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+#rmenu li{
+    list-style: none; 
+    padding-left: 5px; 
+    padding-right: 5px; 
+}
+
+#rmenu li:disabled{
+    background: gray;
+}
+
+#rmenu li:hover {
+    background-color: blue;
     cursor: pointer;
 }
 
@@ -74,6 +145,14 @@ g.selected:hover circle{
     fill: rgb(250, 232, 255);
 }
 
+g.dijkstra circle{
+    fill: red;
+}
+
+g.dijkstra:hover circle{
+    fill: rgb(270, 100, 100);
+}
+
 path.link {
     fill: none;
     stroke: #333;
@@ -95,4 +174,8 @@ path.link.hidden{
 
 path.link.selected {
     stroke: rgb(229, 172, 247);
+}
+
+path.link.dijkstra {
+    stroke: red;
 }

@@ -5,9 +5,22 @@
   </head>
   <body>
     <div id="graph">
-    <div id="toolbox">
-      <input type="file" id="hidden-file-upload"><input id="upload-input" type="image" title="upload graph" src="assets/upload-icon.png" alt="upload graph"> <input type="image" id="download-input" title="download graph" src="assets/download-icon.png" alt="download graph"> <input type="image" id="delete-graph" title="delete graph" src="assets/trash-icon.png" alt="delete graph">
-    </div>
+      <div id="toolbox">
+        <input type="file" id="hidden-file-upload">
+        <input id="upload-input" type="image" title="upload graph" src="assets/upload-icon.png" alt="upload graph">
+        <input type="image" id="download-input" title="download graph" src="assets/download-icon.png" alt="download graph">
+        <input type="image" id="delete-graph" title="delete graph" src="assets/trash-icon.png" alt="delete graph">
+        <div id="dijkstra" class="dijkstra tooltip">
+          <span class="tooltiptext"></span>
+        </div>
+      </div>
+      <!-- Initially hidden right-click menu -->
+      <div class="hide" id="rmenu">
+        <ul>
+          <li id='fromNode'>From Node</li>
+          <li id='toNode'>To Node</li>
+        </ul>
+      </div>
     </div>
     <script src="//d3js.org/d3.v3.js" charset="utf-8"></script>
     <script src="//cdn.jsdelivr.net/filesaver.js/0.1/FileSaver.min.js"></script>
