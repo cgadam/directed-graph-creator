@@ -1,4 +1,4 @@
-document.onload = (function(d3, saveAs, Blob, undefined){
+document.onload = (function(d3, saveAs, Blob){
   "use strict";
 
   // TODO add user settings
@@ -8,6 +8,90 @@ document.onload = (function(d3, saveAs, Blob, undefined){
   var settings = {
     appendElSpec: "#graph"
   };
+
+  /**
+   * <BORROWED START> 
+   * Source: https://github.com/mburst/dijkstras-algorithm/blob/master/dijkstras.js
+   */
+  function PriorityQueue () {
+    this._nodes = [];
+
+    this.enqueue = function (priority, key) {
+      this._nodes.push({key: key, priority: priority });
+      this.sort();
+    };
+    this.dequeue = function () {
+      return this._nodes.shift().key;
+    };
+    this.sort = function () {
+      this._nodes.sort(function (a, b) {
+        return a.priority - b.priority;
+      });
+    };
+    this.isEmpty = function () {
+      return !this._nodes.length;
+    };
+  }
+
+  function DijkstraGraph(){
+    const INFINITY = 1/0;
+    this.vertices = {};
+
+    this.addVertex = function(name, edges){
+      this.vertices[name] = edges;
+    };
+
+    this.shortestPath = function (start, finish) {
+      var nodes = new PriorityQueue(),
+          distances = {},
+          previous = {},
+          path = [],
+          smallest, vertex, neighbor, alt;
+
+      for(vertex in this.vertices) {
+        if(vertex == start) {
+          distances[vertex] = 0;
+          nodes.enqueue(0, vertex);
+        }
+        else {
+          distances[vertex] = INFINITY;
+          nodes.enqueue(INFINITY, vertex);
+        }
+
+        previous[vertex] = null;
+      }
+      while(!nodes.isEmpty()) {
+        smallest = nodes.dequeue();
+        if(smallest == finish) {
+          path = [];
+          while(previous[smallest]) {
+            path.push(smallest);
+            smallest = previous[smallest];
+          }
+          break;
+        }
+        if(!smallest || distances[smallest] === INFINITY){
+          continue;
+        }
+        for(neighbor in this.vertices[smallest]) {
+          alt = distances[smallest] + this.vertices[smallest][neighbor];
+          if(alt < distances[neighbor]) {
+            distances[neighbor] = alt;
+            previous[neighbor] = smallest;
+            nodes.enqueue(alt, neighbor);
+          }
+        }
+      }
+      if(path.length > 0){
+        path = path.concat('' + start).reverse();
+      }
+      return path;
+    };
+  }
+  /**
+   * <BORROWED END>
+   */
+
   // define graphcreator object
   var GraphCreator = function(svg, nodes, edges){
     var thisGraph = this;
@@ -16,17 +100,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     thisGraph.nodes = nodes || [];
     thisGraph.edges = edges || [];
 
-    thisGraph.state = {
-      selectedNode: null,
-      selectedEdge: null,
-      mouseDownNode: null,
-      mouseDownLink: null,
-      justDragged: false,
-      justScaleTransGraph: false,
-      lastKeyDown: -1,
-      shiftNodeDrag: false,
-      selectedText: null
-    };
+    thisGraph.clearState();
 
     // define arrow markers for graph links
     var defs = svg.append('svg:defs');
@@ -85,6 +159,8 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     .on("keyup", function(){
       thisGraph.svgKeyUp.call(thisGraph);
     });
+
+    svg.on("click", function(d){ thisGraph.hideContextMenu();});
     svg.on("mousedown", function(d){thisGraph.svgMouseDown.call(thisGraph, d);});
     svg.on("mouseup", function(d){thisGraph.svgMouseUp.call(thisGraph, d);});
 
@@ -115,13 +191,29 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     // listen for resize
     window.onresize = function(){thisGraph.updateWindow(svg);};
 
+    d3.select("#dijkstra").on("click", function(){
+      thisGraph.clearDijkstraPath();
+    });
+
+    d3.select("#fromNode").on("click", function(){
+      thisGraph.state.dijkstraFromNode = thisGraph.state.selectedNode;
+      thisGraph.hideContextMenu();
+      thisGraph.updateDijkstraPath();
+    });
+
+    d3.select("#toNode").on("click", function(){
+      thisGraph.state.dijkstraToNode = thisGraph.state.selectedNode;
+      thisGraph.hideContextMenu();
+      thisGraph.updateDijkstraPath();
+    });
+
     // handle download data
     d3.select("#download-input").on("click", function(){
       var saveEdges = [];
       thisGraph.edges.forEach(function(val, i){
         saveEdges.push({source: val.source.id, target: val.target.id});
       });
-      var blob = new Blob([window.JSON.stringify({"nodes": thisGraph.nodes, "edges": saveEdges})], {type: "text/plain;charset=utf-8"});
+      var blob = new Blob([window.JSON.stringify({"nodes": thisGraph.nodes, "edges": saveEdges, "idct": thisGraph.idct })], {type: "text/plain;charset=utf-8"});
       saveAs(blob, "mydag.json");
     });
 
@@ -142,7 +234,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
             var jsonObj = JSON.parse(txtRes);
             thisGraph.deleteGraph(true);
             thisGraph.nodes = jsonObj.nodes;
-            thisGraph.setIdCt(jsonObj.nodes.length + 1);
+            thisGraph.setIdCt(jsonObj.idct);
             var newEdges = jsonObj.edges;
             newEdges.forEach(function(e, i){
               newEdges[i] = {source: thisGraph.nodes.filter(function(n){return n.id == e.source;})[0],
@@ -168,6 +260,24 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       thisGraph.deleteGraph(false);
     });
   };
+
+  GraphCreator.prototype.clearState = function(){
+    this.state = {
+      selectedNode: null,
+      selectedEdge: null,
+      mouseDownNode: null,
+      mouseDownLink: null,
+      justDragged: false,
+      justScaleTransGraph: false,
+      lastKeyDown: -1,
+      shiftNodeDrag: false,
+      selectedText: null,
+      dijkstraEnabled: false,
+      dijkstraFromNode: null,
+      dijkstraToNode: null,
+      dijkstraPath: []
+    }
+  }
 
   GraphCreator.prototype.setIdCt = function(idct){
     this.idct = idct;
@@ -207,6 +317,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     if(doDelete){
       thisGraph.nodes = [];
       thisGraph.edges = [];
+      thisGraph.clearState();
       thisGraph.updateGraph();
     }
   };
@@ -351,8 +462,46 @@ document.onload = (function(d3, saveAs, Blob, undefined){
             d.title = this.textContent;
             thisGraph.insertTitleLinebreaks(d3node, d.title);
             d3.select(this.parentElement).remove();
+            thisGraph.updateDijkstraStatus();
           });
     return d3txt;
+  };
+
+  GraphCreator.prototype.updateDijkstraPath = function(){
+    if(this.state.dijkstraFromNode && this.state.dijkstraToNode){
+      this.state.dijkstraPath = this.calcDijkstra(this.state.dijkstraFromNode, this.state.dijkstraToNode).map(function(el){ return parseInt(el); }) || [];
+      if(this.state.dijkstraPath.length === 0){
+        alert("No possible path found between the selected nodes");
+      }
+    }
+    this.updateGraph();
+  }
+
+  GraphCreator.prototype.clearDijkstraPath = function(){
+    this.state.dijkstraFromNode = null;
+    this.state.dijkstraToNode = null;
+    this.state.dijkstraPath = []
+    this.updateGraph();
+  }
+
+  GraphCreator.prototype.updateDijkstraStatus = function(){
+    var isDijstraEnabled = true;
+    if(this.nodes.length === 0) {
+      isDijstraEnabled = false;
+    }else{
+      for(var i=0; i < this.nodes.length; i++){
+        if(isNaN(parseInt(this.nodes[i].title)) || parseInt(this.nodes[i].title) < 0 ){
+          isDijstraEnabled = false;
+          break;
+        }
+      }
+    }
+    this.state.dijkstraEnabled = isDijstraEnabled;
+    d3.select('#dijkstra').classed('disabled', !this.state.dijkstraEnabled);
+    var tooltip = isDijstraEnabled ?
+      'Click to clear the Dijkstra path. Select a node and right click on it to mark it as a "from"/"to" node' :
+      'Dijkstra mode is disabled. All nodes must contain positive integers as title to enable this mode.';
+    d3.select(".tooltiptext").text(tooltip);
   };
 
   // mouseup on nodes
@@ -404,9 +553,8 @@ document.onload = (function(d3, saveAs, Blob, undefined){
 
           if (!prevNode || prevNode.id !== d.id){
             thisGraph.replaceSelectNode(d3node, d);
-          } else{
-            thisGraph.removeSelectFromNode();
           }
+          
         }
       }
     }
@@ -498,6 +646,9 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       .classed(consts.selectedClass, function(d){
         return d === state.selectedEdge;
       })
+      .classed('dijkstra', function(d){
+        return thisGraph.isDijkstraNode(d.source) && thisGraph.isDijkstraNode(d.target)
+      })
       .attr("d", function(d){
         return "M" + d.source.x + "," + d.source.y + "L" + d.target.x + "," + d.target.y;
       });
@@ -524,6 +675,7 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     // update existing nodes
     thisGraph.circles = thisGraph.circles.data(thisGraph.nodes, function(d){ return d.id;});
     thisGraph.circles.attr("transform", function(d){return "translate(" + d.x + "," + d.y + ")";});
+    thisGraph.circles.classed("dijkstra", function(d){ return thisGraph.isDijkstraNode(d)});
 
     // add new nodes
     var newGs= thisGraph.circles.enter()
@@ -547,6 +699,12 @@ document.onload = (function(d3, saveAs, Blob, undefined){
       })
       .on("contextmenu", function(d){
         d3.event.preventDefault();
+        if(thisGraph.state.selectedNode && thisGraph.state.dijkstraEnabled && !thisGraph.state.shiftNodeDrag){
+          thisGraph.showContextMenu({
+            x: d.x,
+            y: d.y
+          });
+        }
         return false;
       })
       .call(thisGraph.drag);
@@ -560,7 +718,25 @@ document.onload = (function(d3, saveAs, Blob, undefined){
 
     // remove old nodes
     thisGraph.circles.exit().remove();
+
+    thisGraph.updateDijkstraStatus();
   };
+
+  GraphCreator.prototype.isDijkstraNode = function(node){
+    var dijkstraNodes = [];
+    
+    if(this.state.dijkstraFromNode){
+      dijkstraNodes.push(this.state.dijkstraFromNode.id);
+    }
+
+    if(this.state.dijkstraToNode){
+      dijkstraNodes.push(this.state.dijkstraToNode.id);
+    }
+
+    dijkstraNodes = dijkstraNodes.concat(this.state.dijkstraPath);
+    
+    return dijkstraNodes.indexOf(node.id) !== -1;
+  }
 
   GraphCreator.prototype.zoomed = function(){
     this.state.justScaleTransGraph = true;
@@ -576,7 +752,36 @@ document.onload = (function(d3, saveAs, Blob, undefined){
     svg.attr("width", x).attr("height", y);
   };
 
+  GraphCreator.prototype.calcDijkstra = function(nodeFrom, nodeTo){
+    var thisGraph = this;
+    if(!nodeFrom && !nodeTo){
+      return;
+    }
+    var graph = new DijkstraGraph();
+    thisGraph.nodes.forEach(function(node){
+      var nodeEdges = {} ;
+      thisGraph.edges.forEach(function(edge){
+        if(edge.source.id === node.id){
+          nodeEdges[edge.target.id] = parseInt(edge.target.title);
+        }
+      });
+      graph.addVertex(node.id, nodeEdges);
+    });
+    return graph.shortestPath(this.state.dijkstraFromNode.id, this.state.dijkstraToNode.id);
+  }
 
+  GraphCreator.prototype.showContextMenu = function(pos){
+    d3.select("#rmenu").classed("hide", false);
+    d3.select("#rmenu").style({ 
+      position: "absolute",
+        top: pos.y + "px",
+        left: pos.x + "px"
+    });
+  }
+
+   GraphCreator.prototype.hideContextMenu = function(pos){
+     d3.select('#rmenu').classed('hide', true)
+   }
 
   /**** MAIN ****/
 
@@ -604,6 +809,6 @@ document.onload = (function(d3, saveAs, Blob, undefined){
         .attr("width", width)
         .attr("height", height);
   var graph = new GraphCreator(svg, nodes, edges);
-      graph.setIdCt(2);
+      graph.setIdCt(1);
   graph.updateGraph();
 })(window.d3, window.saveAs, window.Blob);
